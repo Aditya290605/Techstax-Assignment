@@ -6,32 +6,9 @@ import '../../features/auth/screens/splash_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/signup_screen.dart';
 
-// Placeholder for home — will be built in Phase 3
-class _PlaceholderHome extends StatelessWidget {
-  const _PlaceholderHome();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mini TaskHub')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Welcome! Auth is working. 🎉'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () async {
-                await Supabase.instance.client.auth.signOut();
-              },
-              child: const Text('Logout'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+import '../../features/tasks/screens/home_screen.dart';
+import '../../features/tasks/screens/add_task_screen.dart';
+import '../../features/tasks/screens/task_detail_screen.dart';
 
 /// Notifier that listens to Supabase auth state for GoRouter refresh
 class AuthNotifier extends ChangeNotifier {
@@ -88,7 +65,18 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/home',
-      builder: (context, state) => const _PlaceholderHome(),
+      builder: (context, state) => const HomeScreen(),
+    ),
+    GoRoute(
+      path: '/add-task',
+      builder: (context, state) => const AddTaskScreen(),
+    ),
+    GoRoute(
+      path: '/task/:id',
+      builder: (context, state) {
+        final taskId = state.pathParameters['id']!;
+        return TaskDetailScreen(taskId: taskId);
+      },
     ),
   ],
 );
