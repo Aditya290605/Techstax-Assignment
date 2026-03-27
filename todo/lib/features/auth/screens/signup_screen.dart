@@ -34,18 +34,15 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
     try {
       final authService = ref.read(authServiceProvider);
+      // Sign up — Supabase auto-logs in when email confirmation is disabled
       await authService.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Account created! Please sign in.'),
-          ),
-        );
-        context.go('/login');
+        // User is auto-logged in, go straight to home
+        context.go('/home');
       }
     } catch (e) {
       if (mounted) {
