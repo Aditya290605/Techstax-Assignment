@@ -46,6 +46,11 @@ A premium, production-grade to-do list application built with Flutter. Designed 
 
 ## 🚀 Getting Started
 
+### 🔑 Demo Credentials
+To quickly explore the app without signing up, use these test credentials:
+- **Email:** `test@gmail.com`
+- **Password:** `pass@123`
+
 ### Prerequisites
 *   Flutter SDK (See [Install Flutter](https://docs.flutter.dev/get-started/install))
 *   A Supabase account and project.
