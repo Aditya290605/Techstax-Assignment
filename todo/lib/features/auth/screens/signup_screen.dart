@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
@@ -29,21 +30,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
   Future<void> _handleSignup() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
-
     try {
       final authService = ref.read(authServiceProvider);
-      // Sign up — Supabase auto-logs in when email confirmation is disabled
       await authService.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-
-      if (mounted) {
-        // User is auto-logged in, go straight to home
-        context.go('/home');
-      }
+      if (mounted) context.go('/home');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -61,80 +55,103 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Form(
               key: _formKey,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo
-                  Icon(
-                    Icons.person_add_rounded,
-                    size: 64,
-                    color: theme.colorScheme.primary,
+                  const SizedBox(height: 20),
+                  Center(
+                    child: Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [const Color(0xFF9B8AFB), const Color(0xFF7C6FF7)]
+                              : [const Color(0xFF3B3486), const Color(0xFF5B4FCF)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDark
+                                ? const Color(0xFF9B8AFB).withValues(alpha: 0.3)
+                                : const Color(0xFF3B3486).withValues(alpha: 0.2),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.person_add_rounded,
+                          size: 36, color: Colors.white),
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 28),
                   Text(
                     'Create Account',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                    style: GoogleFonts.dmSerifDisplay(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w400,
+                      color: theme.colorScheme.onSurface,
+                      letterSpacing: -0.5,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Sign up to get started',
-                    style: theme.textTheme.bodyLarge?.copyWith(
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
                       color: theme.colorScheme.onSurfaceVariant,
+                      letterSpacing: 0.1,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 40),
-
-                  // Email field
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(
                       labelText: 'Email',
+                      hintText: 'you@example.com',
                       prefixIcon: Icon(Icons.email_outlined),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Please enter your email';
                       }
-                      if (!value.contains('@')) {
-                        return 'Enter a valid email';
-                      }
+                      if (!value.contains('@')) return 'Enter a valid email';
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
-
-                  // Password field
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     textInputAction: TextInputAction.next,
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 20,
                         ),
-                        onPressed: () {
-                          setState(() => _obscurePassword = !_obscurePassword);
-                        },
+                        onPressed: () =>
+                            setState(() => _obscurePassword = !_obscurePassword),
                       ),
                     ),
                     validator: (value) {
@@ -148,24 +165,22 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-
-                  // Confirm password
                   TextFormField(
                     controller: _confirmPasswordController,
                     obscureText: _obscureConfirm,
                     textInputAction: TextInputAction.done,
                     decoration: InputDecoration(
                       labelText: 'Confirm Password',
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscureConfirm
-                              ? Icons.visibility_off
-                              : Icons.visibility,
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 20,
                         ),
-                        onPressed: () {
-                          setState(() => _obscureConfirm = !_obscureConfirm);
-                        },
+                        onPressed: () =>
+                            setState(() => _obscureConfirm = !_obscureConfirm),
                       ),
                     ),
                     validator: (value) {
@@ -176,35 +191,55 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     },
                     onFieldSubmitted: (_) => _handleSignup(),
                   ),
-                  const SizedBox(height: 24),
-
-                  // Signup button
-                  FilledButton(
-                    onPressed: _isLoading ? null : _handleSignup,
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Sign Up'),
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    height: 52,
+                    child: FilledButton(
+                      onPressed: _isLoading ? null : _handleSignup,
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                strokeCap: StrokeCap.round,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              'Sign Up',
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                    ),
                   ),
-                  const SizedBox(height: 16),
-
-                  // Login link
+                  const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         'Already have an account? ',
-                        style: theme.textTheme.bodyMedium,
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       TextButton(
                         onPressed: () => context.go('/login'),
-                        child: const Text('Sign In'),
+                        child: Text(
+                          'Sign In',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
