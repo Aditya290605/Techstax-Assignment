@@ -55,7 +55,8 @@ class TaskTile extends StatelessWidget {
               // Checkbox
               GestureDetector(
                 onTap: onToggle,
-                child: Container(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
@@ -70,9 +71,18 @@ class TaskTile extends StatelessWidget {
                         ? theme.colorScheme.primary
                         : Colors.transparent,
                   ),
-                  child: task.isCompleted
-                      ? const Icon(Icons.check, size: 16, color: Colors.white)
-                      : null,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    transitionBuilder: (child, animation) {
+                      return ScaleTransition(scale: animation, child: child);
+                    },
+                    child: task.isCompleted
+                        ? const Icon(Icons.check,
+                            key: ValueKey('checked'),
+                            size: 16,
+                            color: Colors.white)
+                        : const SizedBox.shrink(key: ValueKey('unchecked')),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),

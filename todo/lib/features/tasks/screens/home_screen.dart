@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../providers/task_provider.dart';
+import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/task_tile.dart';
 import '../../../shared/widgets/progress_card.dart';
 
@@ -15,14 +17,27 @@ class HomeScreen extends ConsumerWidget {
     final taskList = ref.watch(taskListProvider);
     final progress = ref.watch(taskProgressProvider);
     final completedCount = ref.watch(completedTaskCountProvider);
+    final currentThemeMode = ref.watch(themeProvider);
     final user = Supabase.instance.client.auth.currentUser;
     final email = user?.email ?? 'User';
     final name = email.split('@').first;
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Mini TaskHub'),
         actions: [
+          IconButton(
+            icon: Icon(
+              currentThemeMode == ThemeMode.dark
+                  ? Icons.light_mode_rounded
+                  : Icons.dark_mode_rounded,
+            ),
+            tooltip: 'Toggle Theme',
+            onPressed: () {
+              ref.read(themeProvider.notifier).toggleTheme();
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout_rounded),
             tooltip: 'Logout',
@@ -107,10 +122,11 @@ class HomeScreen extends ConsumerWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.task_alt_rounded,
-                            size: 64,
-                            color: theme.colorScheme.outline,
+                          Image.asset(
+                            'assets/images/notask.png',
+                            width: 200,
+                            height: 200,
+                            fit: BoxFit.contain,
                           ),
                           const SizedBox(height: 16),
                           Text(
