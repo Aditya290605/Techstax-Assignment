@@ -1,12 +1,20 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/task_model.dart';
 import '../services/task_service.dart';
+import '../services/local_db_service.dart';
+
+/// Provides the LocalDbService instance
+final localDbServiceProvider = Provider<LocalDbService>((ref) {
+  return LocalDbService();
+});
 
 /// Provides the TaskService instance
 final taskServiceProvider = Provider<TaskService>((ref) {
-  return TaskService(Supabase.instance.client);
+  final localDb = ref.watch(localDbServiceProvider);
+  return TaskService(Supabase.instance.client, localDb, Connectivity());
 });
 
 /// Main task list provider — manages all tasks for the current user

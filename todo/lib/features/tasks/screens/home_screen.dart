@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../providers/task_provider.dart';
+import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/task_tile.dart';
 import '../../../shared/widgets/progress_card.dart';
 
@@ -12,45 +16,92 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final taskList = ref.watch(taskListProvider);
     final progress = ref.watch(taskProgressProvider);
     final completedCount = ref.watch(completedTaskCountProvider);
+    final currentThemeMode = ref.watch(themeProvider);
     final user = Supabase.instance.client.auth.currentUser;
     final email = user?.email ?? 'User';
     final name = email.split('@').first;
+    final today = DateFormat('EEEE, MMM d').format(DateTime.now());
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
-        title: const Text('Mini TaskHub'),
+        title: Text(
+          'TaskHub',
+          style: GoogleFonts.dmSerifDisplay(
+            fontWeight: FontWeight.w400,
+            letterSpacing: -0.5,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            tooltip: 'Logout',
-            onPressed: () async {
-              await Supabase.instance.client.auth.signOut();
-              if (context.mounted) context.go('/login');
+            icon: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (child, animation) {
+                return RotationTransition(
+                  turns: Tween(begin: 0.75, end: 1.0).animate(animation),
+                  child: ScaleTransition(scale: animation, child: child),
+                );
+              },
+              child: Icon(
+                currentThemeMode == ThemeMode.dark
+                    ? Icons.light_mode_rounded
+                    : Icons.dark_mode_rounded,
+                key: ValueKey(currentThemeMode),
+                size: 22,
+              ),
+            ),
+            tooltip: 'Toggle Theme',
+            onPressed: () {
+              ref.read(themeProvider.notifier).toggleTheme();
             },
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: () => ref.read(taskListProvider.notifier).refresh(),
+        color: theme.colorScheme.primary,
         child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            // Greeting
+            // ─── Greeting Section ───
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                child: Text(
-                  'Hello, $name 👋',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hello, $name 👋',
+                      style: GoogleFonts.dmSerifDisplay(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w400,
+                        color: theme.colorScheme.onSurface,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      today,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.1,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
 
-            // Progress card
+            const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+            // ─── Progress Card ───
             SliverToBoxAdapter(
               child: taskList.when(
                 data: (tasks) => ProgressCard(
@@ -58,34 +109,71 @@ class HomeScreen extends ConsumerWidget {
                   completedCount: completedCount,
                   totalCount: tasks.length,
                 ),
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: LinearProgressIndicator(),
+                loading: () => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    height: 130,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF1C1C3A)
+                          : const Color(0xFFF0EEFF),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
                 ),
                 error: (error, stack) => const SizedBox.shrink(),
               ),
             ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-            // Section header
+            // ─── Section Header ───
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Your Tasks',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Your Tasks',
+                          style: GoogleFonts.dmSerifDisplay(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w400,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
                     ),
                     taskList.whenOrNull(
-                          data: (tasks) => Text(
-                            '${tasks.length} tasks',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                          data: (tasks) => Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF1C1C3A)
+                                  : const Color(0xFFF0EEFF),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${tasks.length} tasks',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.primary,
+                                letterSpacing: 0.2,
+                              ),
                             ),
                           ),
                         ) ??
@@ -95,9 +183,9 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 8)),
+            const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
-            // Task list
+            // ─── Task List ───
             taskList.when(
               data: (tasks) {
                 if (tasks.isEmpty) {
@@ -107,24 +195,34 @@ class HomeScreen extends ConsumerWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.task_alt_rounded,
-                            size: 64,
-                            color: theme.colorScheme.outline,
+                          Image.asset(
+                            'assets/images/notask.png',
+                            width: 180,
+                            height: 180,
+                            fit: BoxFit.contain,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
                           Text(
                             'No tasks yet',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                            style: GoogleFonts.dmSerifDisplay(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w400,
+                              color: theme.colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Tap + to add your first task',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.outline,
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              color: theme.colorScheme.onSurfaceVariant,
                             ),
+                          ),
+                          const SizedBox(height: 24),
+                          FilledButton.icon(
+                            onPressed: () => context.push('/add-task'),
+                            icon: const Icon(Icons.add_rounded, size: 20),
+                            label: const Text('Create Task'),
                           ),
                         ],
                       ),
@@ -155,40 +253,49 @@ class HomeScreen extends ConsumerWidget {
               ),
               error: (error, _) => SliverFillRemaining(
                 child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline,
-                          size: 48, color: theme.colorScheme.error),
-                      const SizedBox(height: 16),
-                      Text('Error loading tasks',
-                          style: theme.textTheme.titleMedium),
-                      const SizedBox(height: 8),
-                      Text(
-                        error.toString(),
-                        style: theme.textTheme.bodySmall,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: () =>
-                            ref.read(taskListProvider.notifier).refresh(),
-                        child: const Text('Retry'),
-                      ),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline_rounded,
+                            size: 48, color: theme.colorScheme.error),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Error loading tasks',
+                          style: GoogleFonts.dmSerifDisplay(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          error.toString(),
+                          style: theme.textTheme.bodySmall,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+                        FilledButton.icon(
+                          onPressed: () =>
+                              ref.read(taskListProvider.notifier).refresh(),
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Retry'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
 
-            // Bottom padding
-            const SliverToBoxAdapter(child: SizedBox(height: 80)),
+            const SliverToBoxAdapter(child: SizedBox(height: 88)),
           ],
         ),
       ),
+
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/add-task'),
-        icon: const Icon(Icons.add),
+        icon: const Icon(Icons.add_rounded),
         label: const Text('Add Task'),
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/task_model.dart';
 import '../providers/task_provider.dart';
@@ -85,7 +86,17 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
       if (mounted) {
         setState(() => _isEditing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Task updated!')),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded,
+                    color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Text('Task updated!',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -100,11 +111,21 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   }
 
   Future<void> _deleteTask() async {
+    final theme = Theme.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Task'),
-        content: const Text('Are you sure you want to delete this task?'),
+        title: Text(
+          'Delete Task',
+          style: GoogleFonts.dmSerifDisplay(fontWeight: FontWeight.w400),
+        ),
+        content: Text(
+          'Are you sure you want to delete this task? This action cannot be undone.',
+          style: GoogleFonts.inter(
+            color: theme.colorScheme.onSurfaceVariant,
+            height: 1.5,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -113,7 +134,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+              backgroundColor: theme.colorScheme.error,
             ),
             child: const Text('Delete'),
           ),
@@ -135,11 +156,11 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   Color _priorityColor(String priority) {
     switch (priority) {
       case 'high':
-        return Colors.red;
+        return const Color(0xFFEF4444);
       case 'medium':
-        return Colors.orange;
+        return const Color(0xFFF59E0B);
       case 'low':
-        return Colors.green;
+        return const Color(0xFF22C55E);
       default:
         return Colors.grey;
     }
@@ -156,24 +177,44 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
 
         if (task == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Task')),
-            body: const Center(child: Text('Task not found')),
+            appBar: AppBar(
+              title: Text('Task',
+                  style: GoogleFonts.dmSerifDisplay(
+                      fontWeight: FontWeight.w400)),
+            ),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.search_off_rounded,
+                      size: 48,
+                      color: theme.colorScheme.onSurfaceVariant),
+                  const SizedBox(height: 12),
+                  Text('Task not found',
+                      style: GoogleFonts.inter(
+                          color: theme.colorScheme.onSurfaceVariant)),
+                ],
+              ),
+            ),
           );
         }
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(_isEditing ? 'Edit Task' : 'Task Details'),
+            title: Text(
+              _isEditing ? 'Edit Task' : 'Task Details',
+              style: GoogleFonts.dmSerifDisplay(fontWeight: FontWeight.w400),
+            ),
             actions: [
               if (!_isEditing) ...[
                 IconButton(
-                  icon: const Icon(Icons.edit_rounded),
+                  icon: const Icon(Icons.edit_outlined, size: 22),
                   tooltip: 'Edit',
                   onPressed: () => _startEditing(task),
                 ),
                 IconButton(
-                  icon: Icon(Icons.delete_outline,
-                      color: theme.colorScheme.error),
+                  icon: Icon(Icons.delete_outline_rounded,
+                      color: theme.colorScheme.error, size: 22),
                   tooltip: 'Delete',
                   onPressed: _deleteTask,
                 ),
@@ -186,7 +227,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
             ],
           ),
           body: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
             child: _isEditing
                 ? _buildEditView(task, theme)
                 : _buildDetailView(task, theme),
@@ -194,100 +235,173 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
         );
       },
       loading: () => Scaffold(
-        appBar: AppBar(title: const Text('Task')),
+        appBar: AppBar(
+          title: Text('Task',
+              style: GoogleFonts.dmSerifDisplay(fontWeight: FontWeight.w400)),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => Scaffold(
-        appBar: AppBar(title: const Text('Task')),
+        appBar: AppBar(
+          title: Text('Task',
+              style: GoogleFonts.dmSerifDisplay(fontWeight: FontWeight.w400)),
+        ),
         body: Center(child: Text('Error: $e')),
       ),
     );
   }
 
   Widget _buildDetailView(Task task, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    final priorityCol = _priorityColor(task.priority);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Completion status
-        Card(
-          child: ListTile(
-            leading: Icon(
-              task.isCompleted
-                  ? Icons.check_circle_rounded
-                  : Icons.radio_button_unchecked,
-              color: task.isCompleted ? Colors.green : theme.colorScheme.outline,
-              size: 28,
-            ),
-            title: Text(
-              task.isCompleted ? 'Completed' : 'Pending',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            trailing: Switch(
-              value: task.isCompleted,
-              onChanged: (_) {
-                ref.read(taskListProvider.notifier).toggleComplete(task);
-              },
+        // ─── Status Card ───
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: task.isCompleted
+                ? const Color(0xFF22C55E).withValues(alpha: 0.08)
+                : isDark
+                    ? const Color(0xFF1C1C3A)
+                    : const Color(0xFFF0EEFF),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: task.isCompleted
+                  ? const Color(0xFF22C55E).withValues(alpha: 0.3)
+                  : theme.colorScheme.outline.withValues(alpha: 0.3),
             ),
           ),
+          child: Row(
+            children: [
+              Icon(
+                task.isCompleted
+                    ? Icons.check_circle_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                color: task.isCompleted
+                    ? const Color(0xFF22C55E)
+                    : theme.colorScheme.onSurfaceVariant,
+                size: 26,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  task.isCompleted ? 'Completed' : 'Pending',
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: task.isCompleted
+                        ? const Color(0xFF22C55E)
+                        : theme.colorScheme.onSurface,
+                  ),
+                ),
+              ),
+              Switch(
+                value: task.isCompleted,
+                onChanged: (_) {
+                  ref.read(taskListProvider.notifier).toggleComplete(task);
+                },
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
 
-        // Title
+        // ─── Title ───
         Text(
           task.title,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
+          style: GoogleFonts.dmSerifDisplay(
+            fontSize: 26,
+            fontWeight: FontWeight.w400,
             decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+            decorationColor: theme.colorScheme.onSurfaceVariant,
+            color: theme.colorScheme.onSurface,
+            letterSpacing: -0.3,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
 
-        // Description
+        // ─── Description ───
         if (task.description != null && task.description!.isNotEmpty) ...[
           Text(
             'Description',
-            style: theme.textTheme.labelLarge?.copyWith(
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
               color: theme.colorScheme.onSurfaceVariant,
+              letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
             task.description!,
-            style: theme.textTheme.bodyLarge,
+            style: GoogleFonts.inter(
+              fontSize: 15,
+              color: theme.colorScheme.onSurface,
+              height: 1.6,
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
         ],
 
-        // Metadata
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _DetailRow(
-                  icon: Icons.calendar_today_rounded,
-                  label: 'Date',
-                  value: DateFormat('EEEE, MMM d, yyyy').format(task.date),
-                ),
-                const Divider(height: 24),
-                _DetailRow(
-                  icon: Icons.flag_rounded,
-                  label: 'Priority',
-                  value: task.priority[0].toUpperCase() +
-                      task.priority.substring(1),
-                  valueColor: _priorityColor(task.priority),
-                ),
-                const Divider(height: 24),
-                _DetailRow(
-                  icon: Icons.access_time_rounded,
-                  label: 'Created',
-                  value: DateFormat('MMM d, yyyy – h:mm a')
-                      .format(task.createdAt.toLocal()),
-                ),
-              ],
+        // ─── Metadata Card ───
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF13132A) : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: theme.colorScheme.outline.withValues(alpha: 0.4),
             ),
+            boxShadow: isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+          ),
+          child: Column(
+            children: [
+              _DetailRow(
+                icon: Icons.calendar_today_rounded,
+                label: 'Due Date',
+                value: DateFormat('EEEE, MMM d, yyyy').format(task.date),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Divider(
+                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                  height: 1,
+                ),
+              ),
+              _DetailRow(
+                icon: Icons.flag_rounded,
+                label: 'Priority',
+                value: task.priority[0].toUpperCase() +
+                    task.priority.substring(1),
+                valueColor: priorityCol,
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Divider(
+                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                  height: 1,
+                ),
+              ),
+              _DetailRow(
+                icon: Icons.access_time_rounded,
+                label: 'Created',
+                value: DateFormat('MMM d, yyyy – h:mm a')
+                    .format(task.createdAt.toLocal()),
+              ),
+            ],
           ),
         ),
       ],
@@ -302,7 +416,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
           controller: _titleController,
           decoration: const InputDecoration(
             labelText: 'Title',
-            prefixIcon: Icon(Icons.title_rounded),
+            prefixIcon: Icon(Icons.edit_note_rounded),
           ),
         ),
         const SizedBox(height: 16),
@@ -320,26 +434,34 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
 
         InkWell(
           onTap: _pickDate,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           child: InputDecorator(
             decoration: const InputDecoration(
-              labelText: 'Date',
+              labelText: 'Due Date',
               prefixIcon: Icon(Icons.calendar_today_rounded),
             ),
-            child: Text(
-              DateFormat('EEEE, MMM d, yyyy').format(_selectedDate),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(DateFormat('EEEE, MMM d, yyyy').format(_selectedDate)),
+                Icon(Icons.arrow_drop_down_rounded,
+                    color: theme.colorScheme.onSurfaceVariant),
+              ],
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
 
         Text(
           'Priority',
-          style: theme.textTheme.titleSmall?.copyWith(
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
             color: theme.colorScheme.onSurfaceVariant,
+            letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         SegmentedButton<String>(
           segments: const [
             ButtonSegment(value: 'low', label: Text('Low')),
@@ -351,17 +473,31 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
             setState(() => _selectedPriority = value.first);
           },
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 36),
 
-        FilledButton(
-          onPressed: _isSaving ? null : () => _saveChanges(task),
-          child: _isSaving
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Save Changes'),
+        SizedBox(
+          height: 52,
+          child: FilledButton(
+            onPressed: _isSaving ? null : () => _saveChanges(task),
+            child: _isSaving
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      strokeCap: StrokeCap.round,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(
+                    'Save Changes',
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+          ),
         ),
       ],
     );
@@ -387,20 +523,40 @@ class _DetailRow extends StatelessWidget {
 
     return Row(
       children: [
-        Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
-        const SizedBox(width: 12),
-        Text(
-          label,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
           ),
+          child: Icon(icon,
+              size: 18, color: theme.colorScheme.primary),
         ),
-        const Spacer(),
-        Text(
-          value,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: valueColor,
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurfaceVariant,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: valueColor ?? theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
           ),
         ),
       ],
